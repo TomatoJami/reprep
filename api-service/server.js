@@ -17,7 +17,7 @@ const config = {
 app.use(auth(config));
 
 app.get("/", (req, res) => {
-    res.send(req.oidc.isAuthenticated() ? 'Logged in' : 'Logged out');
+  res.sendFile(__dirname + "/public/index.html");
 });
 
 app.get("/api/info", (req, res) => {
