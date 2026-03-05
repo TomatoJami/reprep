@@ -26,6 +26,12 @@ app.get("/api/info", (req, res) => {
   });
 });
 
+app.get("/payment-link", (req, res) => {
+  res.json({
+    url: process.env.STRIPE_PAYMENT_LINK
+  });
+});
+
 app.get("/auth-status", (req, res) => {
   res.json({
     loggedIn: req.oidc.isAuthenticated()

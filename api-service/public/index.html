@@ -8,14 +8,20 @@
 <h1>Welcome</h1>
 
 <a id="authButton" href="/login">
-  <button id="btn">Login</button>
+  <button id="authBtn">Login</button>
+</a>
+
+<br><br>
+
+<a id="buyLink" href="#">
+  <button>Buy PRO</button>
 </a>
 
 <script>
 fetch("/auth-status")
   .then(res => res.json())
   .then(data => {
-    const btn = document.getElementById("btn");
+    const btn = document.getElementById("authBtn");
     const link = document.getElementById("authButton");
 
     if (data.loggedIn) {
@@ -23,7 +29,10 @@ fetch("/auth-status")
       link.href = "/logout";
     }
   });
-</script>
 
-</body>
-</html>
+fetch("/payment-link")
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("buyLink").href = data.url;
+  });
+</script>
