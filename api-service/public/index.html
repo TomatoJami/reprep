@@ -6,9 +6,24 @@
 <body>
 
 <h1>Welcome</h1>
-<a href="/login">
-  <button>Login</button>
+
+<a id="authButton" href="/login">
+  <button id="btn">Login</button>
 </a>
+
+<script>
+fetch("/auth-status")
+  .then(res => res.json())
+  .then(data => {
+    const btn = document.getElementById("btn");
+    const link = document.getElementById("authButton");
+
+    if (data.loggedIn) {
+      btn.textContent = "Logout";
+      link.href = "/logout";
+    }
+  });
+</script>
 
 </body>
 </html>

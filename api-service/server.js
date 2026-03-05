@@ -9,7 +9,7 @@ const config = {
   authRequired: false,
   auth0Logout: true,
   secret: process.env.AUTH_SECRET || 'saltedstring',
-  baseURL: 'https://reprep.onrender.com/', // или URL деплоя
+  baseURL: 'https://reprep.onrender.com', // или URL деплоя
   clientID: 'gAD18gnqNeX75EMeFOq8xd7rG773kiSs',
   issuerBaseURL: 'https://dev-nmxk1zhnhtp63n3q.us.auth0.com'
 };
@@ -23,6 +23,12 @@ app.get("/", (req, res) => {
 app.get("/api/info", (req, res) => {
   res.json({
     team: TEAM_NAME
+  });
+});
+
+app.get("/auth-status", (req, res) => {
+  res.json({
+    loggedIn: req.oidc.isAuthenticated()
   });
 });
 
