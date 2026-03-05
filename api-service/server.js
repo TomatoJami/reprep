@@ -10,7 +10,7 @@ const config = {
   auth0Logout: true,
   secret: process.env.AUTH_SECRET || 'saltedstring',
   baseURL: 'https://reprep.onrender.com/', // или URL деплоя
-  clientID: 'dePHXxBjOOAijoFoExJ1HeJyrj1BxTCt',
+  clientID: 'gAD18gnqNeX75EMeFOq8xd7rG773kiSs',
   issuerBaseURL: 'https://dev-nmxk1zhnhtp63n3q.us.auth0.com'
 };
 
