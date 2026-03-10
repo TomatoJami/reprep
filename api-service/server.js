@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express()
 const { auth } = require('express-openid-connect');
+const supabase = require("./supabase");
 
 const PORT = process.env.PORT || 3000;
 const TEAM_NAME = process.env.TEAM_NAME || "Unknown team";
@@ -27,17 +28,57 @@ app.get("/api/info", (req, res) => {
 });
 
 app.get("/payment-link", (req, res) => {
+  if (!req.oidc.isAuthenticated()) {
+    return res.status(401).json({ error: "Not logged in" });
+  }
+
   res.json({
     url: process.env.STRIPE_PAYMENT_LINK
   });
 });
 
-app.get("/auth-status", (req, res) => {
+
+app.get("/auth-status", async (req, res) => {
+
+  if (!req.oidc.isAuthenticated()) {
+    return res.json({ loggedIn: false });
+  }
+
+  const auth0_id = req.oidc.user.sub;
+
+  await supabase
+    .from("users")
+    .upsert({
+      auth0_id: auth0_id
+    });
+
   res.json({
-    loggedIn: req.oidc.isAuthenticated()
+    loggedIn: true
   });
+});
+
+app.get("/pro-status", async (req, res) => {
+
+  if (!req.oidc.isAuthenticated()) {
+    return res.json({ pro: false });
+  }
+
+  const auth0_id = req.oidc.user.sub;
+
+  const { data } = await supabase
+    .from("users")
+    .select("pro")
+    .eq("auth0_id", auth0_id)
+    .single();
+
+  res.json({
+    pro: data?.pro || false
+  });
+
 });
 
 app.listen(PORT, () => {
   console.log("Server running on port " + PORT);
 });
+
+//UG6hz9NDDsGCyI0k

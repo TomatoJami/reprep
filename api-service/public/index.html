@@ -13,20 +13,28 @@
 
 <br><br>
 
-<a id="buyLink" href="#">
+<a id="buyLink" href="#" style="display: none;">
   <button>Buy PRO</button>
 </a>
 
 <script>
+const params = new URLSearchParams(window.location.search);
+
+if (params.get("success") === "true") {
+  alert("✅ Payment successful! PRO activated.");
+}
+
 fetch("/auth-status")
   .then(res => res.json())
   .then(data => {
     const btn = document.getElementById("authBtn");
     const link = document.getElementById("authButton");
+    const buy = document.getElementById("buyLink");
 
     if (data.loggedIn) {
       btn.textContent = "Logout";
       link.href = "/logout";
+      buy.style.display = "inline";
     }
   });
 
@@ -34,5 +42,13 @@ fetch("/payment-link")
   .then(res => res.json())
   .then(data => {
     document.getElementById("buyLink").href = data.url;
+  });
+
+fetch("/pro-status")
+  .then(res => res.json())
+  .then(data => {
+    if (data.pro) {
+      document.getElementById("buyLink").style.display = "none";
+    }
   });
 </script>
