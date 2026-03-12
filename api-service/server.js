@@ -46,11 +46,13 @@ app.get("/auth-status", async (req, res) => {
 
   const auth0_id = req.oidc.user.sub;
 
-  await supabase
-    .from("users")
-    .upsert({
-      auth0_id: auth0_id
-    });
+  const { error } = await supabase
+  .from("users")
+  .upsert({ auth0_id });
+
+  if (error) {
+    console.log(error);
+  }
 
   res.json({
     loggedIn: true

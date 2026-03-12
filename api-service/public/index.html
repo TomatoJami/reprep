@@ -24,31 +24,30 @@ if (params.get("success") === "true") {
   alert("✅ Payment successful! PRO activated.");
 }
 
-fetch("/auth-status")
-  .then(res => res.json())
-  .then(data => {
-    const btn = document.getElementById("authBtn");
-    const link = document.getElementById("authButton");
-    const buy = document.getElementById("buyLink");
+async function init() {
 
-    if (data.loggedIn) {
-      btn.textContent = "Logout";
-      link.href = "/logout";
+  const auth = await fetch("/auth-status").then(r => r.json());
+  const pro = await fetch("/pro-status").then(r => r.json());
+
+  const btn = document.getElementById("authBtn");
+  const link = document.getElementById("authButton");
+  const buy = document.getElementById("buyLink");
+
+  if (auth.loggedIn) {
+    btn.textContent = "Logout";
+    link.href = "/logout";
+
+    if (!pro.pro) {
       buy.style.display = "inline";
     }
-  });
+  }
 
-fetch("/payment-link")
-  .then(res => res.json())
-  .then(data => {
-    document.getElementById("buyLink").href = data.url;
-  });
+  if (!pro.pro) {
+    const payment = await fetch("/payment-link").then(r => r.json());
+    buy.href = payment.url;
+  }
 
-fetch("/pro-status")
-  .then(res => res.json())
-  .then(data => {
-    if (data.pro) {
-      document.getElementById("buyLink").style.display = "none";
-    }
-  });
+}
+
+init();
 </script>
