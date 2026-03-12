@@ -1,16 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Welcome</title>
-  <style>
-    body { font-family: sans-serif; text-align: center; margin-top: 50px; }
-    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-    .pro-status { font-weight: bold; color: green; font-size: 18px; }
-  </style>
+  <title>Login</title>
 </head>
 <body>
 
-<h1>Welcome to My Team</h1>
+<h1>Welcome</h1>
 
 <a id="authButton" href="/login">
   <button id="authBtn">Login</button>
@@ -18,40 +13,41 @@
 
 <br><br>
 
-<div id="buyContainer">
-  <a id="buyLink" href="#">
-    <button>Buy PRO</button>
-  </a>
-  <span id="proText" class="pro-status" style="display:none;">✅ You are PRO!</span>
-</div>
+<a id="buyLink" href="#" style="display: none;">
+  <button>Buy PRO</button>
+</a>
 
 <script>
+const params = new URLSearchParams(window.location.search);
+
+if (params.get("success") === "true") {
+  alert("✅ Payment successful! PRO activated.");
+}
+
 async function init() {
+
   const auth = await fetch("/auth-status").then(r => r.json());
   const pro = await fetch("/pro-status").then(r => r.json());
 
   const btn = document.getElementById("authBtn");
   const link = document.getElementById("authButton");
   const buy = document.getElementById("buyLink");
-  const proText = document.getElementById("proText");
 
   if (auth.loggedIn) {
     btn.textContent = "Logout";
     link.href = "/logout";
 
-    if (pro.pro) {
-      buy.style.display = "none";
-      proText.style.display = "inline";
-    } else {
+    if (!pro.pro) {
       buy.style.display = "inline";
-      const payment = await fetch("/create-checkout-session").then(r => r.json());
-      buy.href = payment.url;
     }
   }
+
+  if (!pro.pro) {
+    const payment = await fetch("/payment-link").then(r => r.json());
+    buy.href = payment.url;
+  }
+
 }
 
 init();
 </script>
-
-</body>
-</html>
