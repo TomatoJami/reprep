@@ -12,7 +12,6 @@ app.post(
   express.raw({ type: "application/json" }),
   async (req, res) => {
     const sig = req.headers["stripe-signature"];
-
     let event;
 
     try {
@@ -28,12 +27,10 @@ app.post(
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
-
       const auth0_id = session.client_reference_id;
 
       if (auth0_id) {
         console.log("Activating PRO for:", auth0_id);
-
         await supabase
           .from("users")
           .update({ pro: true })
@@ -52,8 +49,8 @@ const config = {
   auth0Logout: true,
   secret: process.env.AUTH_SECRET || "saltedstring",
   baseURL: "https://reprep.onrender.com",
-  clientID: "gAD18gnqNeX75EMeFOq8xd7rG773kiSs",
-  issuerBaseURL: "https://dev-nmxk1zhnhtp63n3q.us.auth0.com"
+  clientID: process.env.CLIENT_ID,
+  issuerBaseURL: process.env.ISSUER_BASE_URL,
 };
 
 app.use(auth(config));
@@ -66,46 +63,36 @@ app.get("/api/info", (req, res) => {
   res.json({ team: TEAM_NAME });
 });
 
-app.get("/payment-link", (req, res) => {
-
-  if (!req.oidc.isAuthenticated()) {
-    return res.status(401).json({ error: "Not logged in" });
-  }
+app.get("/create-checkout-session", async (req, res) => {
+  if (!req.oidc.isAuthenticated()) return res.status(401).json({ error: "Not logged in" });
 
   const auth0_id = req.oidc.user.sub;
 
-  const url =
-    process.env.STRIPE_PAYMENT_LINK +
-    "?client_reference_id=" +
-    encodeURIComponent(auth0_id);
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ["card"],
+    mode: "subscription",
+    line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+    client_reference_id: auth0_id,
+    success_url: "https://reprep.onrender.com/?success=true",
+    cancel_url: "https://reprep.onrender.com/"
+  });
 
-  res.json({ url });
-
+  res.json({ url: session.url });
 });
 
 app.get("/auth-status", async (req, res) => {
-
-  if (!req.oidc.isAuthenticated()) {
-    return res.json({ loggedIn: false });
-  }
+  if (!req.oidc.isAuthenticated()) return res.json({ loggedIn: false });
 
   const auth0_id = req.oidc.user.sub;
 
-  const { error } = await supabase
-    .from("users")
-    .upsert({ auth0_id });
-
-  if (error) console.log(error);
+  const { error } = await supabase.from("users").upsert({ auth0_id, pro: false });
+  if (error) console.log("Supabase error:", error);
 
   res.json({ loggedIn: true });
-
 });
 
 app.get("/pro-status", async (req, res) => {
-
-  if (!req.oidc.isAuthenticated()) {
-    return res.json({ pro: false });
-  }
+  if (!req.oidc.isAuthenticated()) return res.json({ pro: false });
 
   const auth0_id = req.oidc.user.sub;
 
@@ -115,12 +102,7 @@ app.get("/pro-status", async (req, res) => {
     .eq("auth0_id", auth0_id)
     .single();
 
-  res.json({
-    pro: data?.pro || false
-  });
-
+  res.json({ pro: data?.pro || false });
 });
 
-app.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
-});
+app.listen(PORT, () => console.log("Server running on port " + PORT));
