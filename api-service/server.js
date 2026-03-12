@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const app = express();
 const { auth } = require("express-openid-connect");
@@ -6,6 +8,7 @@ const supabase = require("./supabase");
 
 const PORT = process.env.PORT || 3000;
 const TEAM_NAME = process.env.TEAM_NAME || "Unknown team";
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 app.post(
   "/stripe-webhook",
@@ -28,16 +31,22 @@ app.post(
 
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
+      console.log("Checkout completed. client_reference_id:", session.client_reference_id);
 
       const auth0_id = session.client_reference_id;
 
       if (auth0_id) {
         console.log("Activating PRO for:", auth0_id);
 
-        await supabase
+        const { error } = await supabase
           .from("users")
           .update({ pro: true })
           .eq("auth0_id", auth0_id);
+
+        if (error) console.log("Supabase update error:", error);
+        else console.log("PRO activated successfully");
+      } else {
+        console.log("No client_reference_id in session — PRO not activated");
       }
     }
 
@@ -51,9 +60,9 @@ const config = {
   authRequired: false,
   auth0Logout: true,
   secret: process.env.AUTH_SECRET || "saltedstring",
-  baseURL: "https://reprep.onrender.com",
-  clientID: "gAD18gnqNeX75EMeFOq8xd7rG773kiSs",
-  issuerBaseURL: "https://dev-nmxk1zhnhtp63n3q.us.auth0.com"
+  baseURL: BASE_URL,
+  clientID: process.env.CLIENT_ID,
+  issuerBaseURL: process.env.ISSUER_BASE_URL,
 };
 
 app.use(auth(config));
@@ -66,7 +75,7 @@ app.get("/api/info", (req, res) => {
   res.json({ team: TEAM_NAME });
 });
 
-app.get("/payment-link", (req, res) => {
+app.get("/payment-link", async (req, res) => {
 
   if (!req.oidc.isAuthenticated()) {
     return res.status(401).json({ error: "Not logged in" });
@@ -74,12 +83,15 @@ app.get("/payment-link", (req, res) => {
 
   const auth0_id = req.oidc.user.sub;
 
-  const url =
-    process.env.STRIPE_PAYMENT_LINK +
-    "?client_reference_id=" +
-    encodeURIComponent(auth0_id);
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+    client_reference_id: auth0_id,
+    success_url: `${BASE_URL}/?success=true`,
+    cancel_url: `${BASE_URL}/`,
+  });
 
-  res.json({ url });
+  res.json({ url: session.url });
 
 });
 
@@ -93,7 +105,7 @@ app.get("/auth-status", async (req, res) => {
 
   const { error } = await supabase
     .from("users")
-    .upsert({ auth0_id });
+    .upsert({ auth0_id }, { onConflict: "auth0_id" });
 
   if (error) console.log(error);
 
